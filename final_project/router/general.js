@@ -3,17 +3,23 @@ let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
-const axios = require("axios");
 
+/**
+ * Route: POST /register
+ * Description: Registers a new user with a username and password.
+ */
 public_users.post("/register", (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
   
+    // Validate request body
     if (!username || !password) {
-      return res.status(400).json({ message: "Missing username or password" }); // Updated to 400 Bad Request
+      return res.status(404).json({ message: "Missing username or password" });
     } else if (isValid(username)) {
-      return res.status(409).json({ message: "User already exists." }); // Updated to 409 Conflict
+      // Check if username is already taken using external validation function
+      return res.status(404).json({ message: "user already exists." });
     } else {
+      // Store the new user credentials locally
       users.push({ username: username, password: password });
       return res
         .status(200)
@@ -21,81 +27,90 @@ public_users.post("/register", (req, res) => {
     }
 });
   
-// Get the book list available in the shop
+/**
+ * Route: GET /
+ * Description: Fetches the list of all books using an immediately resolved Promise.
+ */
 public_users.get('/', function (req, res) {
+    // Wrap the local object retrieval in a Promise to simulate asynchronous database operations
     Promise.resolve(books)
       .then((bookList) => {
+        // Upon successful resolution, send the complete book collection with formatted JSON
         return res.status(200).send(JSON.stringify(bookList, null, 4));
       })
       .catch((err) => {
+        // Error handling: Catch internal failures and respond with a 500 status code
         return res.status(500).send({ error: err.message || 'Internal Server Error' });
       });
 });
 
-// Get book details based on ISBN
+const axios = require("axios");
+
+/**
+ * Route: GET /isbn/:isbn
+ * Description: Fetches book details based on ISBN by making an asynchronous HTTP request using Axios.
+ */
 public_users.get('/isbn/:isbn', async function (req, res) {
+  // Use try/catch blocks for clean, readable error handling inside async functions
   try {
     const isbn = req.params.isbn;
 
-    // Check local storage first (assuming booksdb is keyed by ISBN, or fetch from your internal endpoint)
-    if (books[isbn]) {
-      return res.status(200).json(books[isbn]);
-    }
-
-    // Fallback/External API call logic if applicable
+    // Await the asynchronous external API call to complete before moving to the next line
     const response = await axios.get(`http://localhost:3000/books/isbn/${isbn}`);
-    
-    if (!response.data) {
-      return res.status(404).json({ message: `No book found with ISBN: ${isbn}` });
-    }
 
+    // If the external request succeeds, return the payload back to the client
     return res.status(200).json(response.data);
   } catch (err) {
-    // Catching 404 from external routing or local handling
-    if (err.response?.status === 404) {
-      return res.status(404).json({ message: `No book found with ISBN: ${req.params.isbn}` });
-    }
+    // Error Handling: Extract the precise error message from the API response if available,
+    // otherwise fallback to a generic error message.
     return res.status(500).json({
       error: err.response?.data?.message || err.message || "Internal Server Error",
     });
   }
 });
   
-// Get book details based on Author (Promise callbacks)
+/**
+ * Route: GET /author/:author
+ * Description: Filters and returns book details matching a specific author via a Promise chain.
+ */
 public_users.get('/author/:author', function (req, res) {
     const author = req.params.author;
   
+    // Standardize asynchronous pattern by instantiating an empty Promise chain
     Promise.resolve()
       .then(() => {
+        // Task: Scan through local memory storage to match author strings
         const keys = Object.keys(books);
         let matchingBooks = [];
         
         for (let i = 0; i < keys.length; i++) {
           const key = keys[i];
-          // Use lowercase comparison to prevent strict casing issues (UX improvement)
-          if (books[key].author.toLowerCase() === author.toLowerCase()) {
+          if (books[key].author === author) {
             matchingBooks.push(books[key]);
           }
         }
   
+        // Pass the filtered list down to the next .then() block
         return matchingBooks;
       })
       .then((matchingBooks) => {
-        // Check if any books were found
-        if (matchingBooks.length === 0) {
-          return res.status(404).json({ message: `No books found matching author: '${author}'` });
-        }
+        // Send successfully aggregated data
         return res.status(200).send(JSON.stringify(matchingBooks, null, 4));
       })
       .catch((err) => {
+        // Catch any unforeseen runtime anomalies (e.g., properties of undefined)
         return res.status(500).send({ error: err.message || "Internal Server Error" });
       });
 });
 
-// Get all books based on title using Promise with callback
+/**
+ * Route: GET /title/:title
+ * Description: Retrieves books matching a specific title using an explicit Promise instantiation.
+ */
 public_users.get('/title/:title', function (req, res) {
     const title = req.params.title;
   
+    // Helper function that explicitly constructs a new Promise
     const getBooksByTitle = () => {
       return new Promise((resolve, reject) => {
         try {
@@ -104,21 +119,37 @@ public_users.get('/title/:title', function (req, res) {
   
           for (let i = 0; i < keys.length; i++) {
             const key = keys[i];
-            // Use lowercase comparison to prevent strict casing issues (UX improvement)
-            if (books[key].title.toLowerCase() === title.toLowerCase()) {
+            if (books[key].title === title) {
               matchingTitle.push(books[key]);
             }
           }
   
+          // Fulfill the Promise by passing the findings to the resolver
           resolve(matchingTitle);
         } catch (err) {
+          // Reject the promise if an internal crash happens during data mapping
           reject(err);
         }
       });
     };
   
+    // Invoke the custom promise-based function and handle results or failures
     getBooksByTitle()
       .then((matchingTitle) => {
-        // Check if any books were found
-        if (matchingTitle.
+        return res.status(200).send(JSON.stringify(matchingTitle, null, 4));
+      })
+      .catch(() => {
+        // Simple fallback error tracking response
+        return res.status(500).send('Server error');
+      });
+});
 
+/**
+ * Route: GET /review/:isbn
+ * Description: Retrieves reviews for a specific book. (Placeholder endpoint)
+ */
+public_users.get('/review/:isbn', function (req, res) {
+    // TODO: Implement review retrieval logic here
+});
+
+module.exports.general = public_users;
