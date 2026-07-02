@@ -94,6 +94,10 @@ public_users.get('/author/:author', function (req, res) {
         return matchingBooks;
       })
       .then((matchingBooks) => {
+        // ENHANCEMENT: Check if any books were found for the requested author
+        if (matchingBooks.length === 0) {
+          return res.status(404).json({ message: `No books found for author: ${author}` });
+        }
         // Send successfully aggregated data
         return res.status(200).send(JSON.stringify(matchingBooks, null, 4));
       })
@@ -136,6 +140,10 @@ public_users.get('/title/:title', function (req, res) {
     // Invoke the custom promise-based function and handle results or failures
     getBooksByTitle()
       .then((matchingTitle) => {
+        // ENHANCEMENT: Check if any books were found for the requested title
+        if (matchingTitle.length === 0) {
+          return res.status(404).json({ message: `No books found with the title: ${title}` });
+        }
         return res.status(200).send(JSON.stringify(matchingTitle, null, 4));
       })
       .catch(() => {
@@ -146,10 +154,42 @@ public_users.get('/title/:title', function (req, res) {
 
 /**
  * Route: GET /review/:isbn
- * Description: Retrieves reviews for a specific book. (Placeholder endpoint)
+ * Description: Retrieves reviews for a specific book based on its ISBN.
  */
 public_users.get('/review/:isbn', function (req, res) {
-    // TODO: Implement review retrieval logic here
+    const isbn = req.params.isbn;
+
+    // Use a Promise to look up the book and its reviews asynchronously
+    Promise.resolve()
+      .then(() => {
+        // Check if the book exists in the data store
+        if (!books[isbn]) {
+          const error = new Error(`Book with ISBN ${isbn} not found`);
+          error.status = 404;
+          throw error;
+        }
+        
+        // Return the reviews object for the found book
+        return books[isbn].reviews;
+      })
+      .then((reviews) => {
+        // Check if the reviews object is empty
+        if (Object.keys(reviews).length === 0) {
+          return res.status(200).json({ 
+            message: "This book does not have any reviews yet.", 
+            reviews: {} 
+          });
+        }
+        // Send the found reviews back to the client
+        return res.status(200).json(reviews);
+      })
+      .catch((err) => {
+        // Route tailored error mapping back to the client
+        const statusCode = err.status || 500;
+        return res.status(statusCode).json({ 
+          error: err.message || "Internal Server Error" 
+        });
+      });
 });
 
 module.exports.general = public_users;
