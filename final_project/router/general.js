@@ -79,7 +79,6 @@ public_users.get('/title/:title',function (req, res) {
 
     return res.status(200).send(JSON.stringify(matchingTitle, null, 4));
 });
-
 //  Get book review
 public_users.get("/review/:isbn", function (req, res) {
   const ISBN = req.params.isbn;
