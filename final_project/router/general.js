@@ -4,19 +4,16 @@ let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
 
-/**
- * Route: POST /register
- * Description: Registers a new user with a username and password.
- */
+
 public_users.post("/register", (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
   
-    // Validate request body
+    // Check if username is taken
     if (!username || !password) {
       return res.status(404).json({ message: "Missing username or password" });
     } else if (isValid(username)) {
-      // Check if username is already taken using external validation function
+      // Username exist return message
       return res.status(404).json({ message: "user already exists." });
     } else {
       // Store the new user credentials locally
@@ -27,10 +24,7 @@ public_users.post("/register", (req, res) => {
     }
 });
   
-/**
- * Route: GET /
- * Description: Fetches the list of all books using an immediately resolved Promise.
- */
+
 public_users.get('/', function (req, res) {
     // Wrap the local object retrieval in a Promise to simulate asynchronous database operations
     Promise.resolve(books)
@@ -46,10 +40,7 @@ public_users.get('/', function (req, res) {
 
 const axios = require("axios");
 
-/**
- * Route: GET /isbn/:isbn
- * Description: Fetches book details based on ISBN by making an asynchronous HTTP request using Axios.
- */
+
 public_users.get('/isbn/:isbn', async function (req, res) {
   // Use try/catch blocks for clean, readable error handling inside async functions
   try {
@@ -69,10 +60,7 @@ public_users.get('/isbn/:isbn', async function (req, res) {
   }
 });
   
-/**
- * Route: GET /author/:author
- * Description: Filters and returns book details matching a specific author via a Promise chain.
- */
+
 public_users.get('/author/:author', function (req, res) {
     const author = req.params.author;
   
@@ -107,10 +95,7 @@ public_users.get('/author/:author', function (req, res) {
       });
 });
 
-/**
- * Route: GET /title/:title
- * Description: Retrieves books matching a specific title using an explicit Promise instantiation.
- */
+
 public_users.get('/title/:title', function (req, res) {
     const title = req.params.title;
   
