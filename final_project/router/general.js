@@ -25,10 +25,15 @@ public_users.post("/register", (req, res) => {
 
 
 // Get the book list available in the shop
-public_users.get('/',function (req, res) {
-    
-  return res.status(200).send(JSON.stringify(books,null,4))
-});
+public_users.get('/', function (req, res) {
+    Promise.resolve(books)
+      .then((bookList) => {
+        return res.status(200).send(JSON.stringify(bookList, null, 4));
+      })
+      .catch((err) => {
+        return res.status(500).send({ error: err.message || 'Internal Server Error' });
+      });
+  });
 
 // Get book details based on ISBN
 public_users.get('/isbn/:isbn',function (req, res) {
@@ -76,11 +81,15 @@ public_users.get('/title/:title',function (req, res) {
 });
 
 //  Get book review
-public_users.get('/review/:isbn',function (req, res) {
-  
+public_users.get("/review/:isbn", function (req, res) {
+  const ISBN = req.params.isbn;
+  const Book = books[ISBN];
+  if (Book) {
+    return res.status(200).send(JSON.stringify(Book.reviews, null, 4));
+  } else {
+    return res.status(404).json({ message: "ISBN not found." });
+  }
 });
 
 module.exports.general = public_users;
-
-
 
