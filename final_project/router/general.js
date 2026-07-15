@@ -111,24 +111,7 @@ public_users.get('/author/:author', async function (req, res) {
 });
 
 
-// Get all books based on title
-public_users.get('/title/:title',function (req, res) {
-    const title = req.params.title;
 
-    // Obtain all keys for the 'books' object
-    const keys = Object.keys(books);
-
-    // Iterate and collect matching books
-    let matchingTitle = [];
-    for (let i = 0; i < keys.length; i++) {
-        const key = keys[i];
-        if (books[key].title === title) {
-            matchingTitle.push(books[key]);
-        }
-    }
-
-    return res.status(200).send(JSON.stringify(matchingTitle, null, 4));
-});
 
 // Get all books based on title using async/await directly
 public_users.get('/title/:title', async function (req, res) {
